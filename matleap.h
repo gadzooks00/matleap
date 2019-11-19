@@ -10,8 +10,9 @@
 #define MAJOR_REVISION 0
 #define MINOR_REVISION 7
 
-#include "Leap.h"
+#include "LeapC.h"
 #include "mex.h"
+#include "LeapConnection.h"
 
 namespace matleap
 {
@@ -21,8 +22,8 @@ struct frame
 {
     int64_t id;
     int64_t timestamp;
-    Leap::PointableList pointables;
-    Leap::HandList hands;
+	uint32_t detectedHands;
+    LEAP_HAND* hands;
 };
 
 /// @brief leap frame grabber interface
@@ -30,16 +31,27 @@ class frame_grabber
 {
     private:
     bool debug;
-    Leap::Controller controller;
+	LEAP_CONNECTION* controllerConnection;
     frame current_frame;
     public:
     /// @brief constructor
     frame_grabber ()
         : debug (false)
     {
-        // receive frames even when you don't have focus
-        controller.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
     }
+	void open_connection()
+	{
+		controllerConnection = OpenConnection();
+		while (!IsConnected)
+			millisleep(100); //wait a bit to let the connection complete
+		LeapSetPolicyFlags(*controllerConnection, eLeapPolicyFlag_BackgroundFrames, 0);
+	}
+	void close_connection()
+	{
+		CloseConnectionHandle(controllerConnection);
+		while (IsConnected)
+			millisleep(100); //wait a bit to let the connection complete
+	}
     /// @brief destructor
     ~frame_grabber ()
     {
@@ -62,13 +74,13 @@ class frame_grabber
     /// @return the frame
     const frame &get_frame ()
     {
-        const Leap::Frame &f = controller.frame ();
-        current_frame.id = f.id ();
+		LEAP_TRACKING_EVENT* frame = GetFrame();
+		current_frame.id = frame->tracking_frame_id;
         if (debug)
             mexPrintf ("Got frame with id %d\n", current_frame.id);
-        current_frame.timestamp = f.timestamp ();
-        current_frame.pointables = f.pointables ();
-        current_frame.hands = f.hands ();
+		current_frame.timestamp = frame->info.timestamp;
+		current_frame.detectedHands = frame->nHands;
+		current_frame.hands = frame->pHands;
         return current_frame;
     }
 };
