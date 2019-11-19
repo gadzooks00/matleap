@@ -220,7 +220,7 @@ void get_frame(int nlhs, mxArray* plhs[])
 			{
 				"finger_id", // 0
 				"is_extended",
-				"digits",
+				"bones",
 			};
 			int digit_fields = sizeof(digit_field_names) / sizeof(*digit_field_names);
 			LEAP_DIGIT digits[5];
