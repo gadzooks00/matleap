@@ -214,7 +214,7 @@ void get_frame(int nlhs, mxArray* plhs[])
 			mxSetFieldByNumber(palm, 0, 3, create_and_fill(f.hands[i].palm.normal));
 			mxSetFieldByNumber(palm, 0, 4, mxCreateDoubleScalar(f.hands[i].palm.width));
 			mxSetFieldByNumber(palm, 0, 5, create_and_fill(f.hands[i].palm.direction));
-			mxSetFieldByNumber(palm, 0, 5, create_and_fill(f.hands[i].palm.orientation));
+			mxSetFieldByNumber(palm, 0, 6, create_and_fill(f.hands[i].palm.orientation));
 			// get bones for all fingers
 			const char* digit_field_names[] =
 			{
