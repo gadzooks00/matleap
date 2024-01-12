@@ -20,11 +20,15 @@ function test_matleap
     while(toc<10)
         % get a frame
         f=matleap_frame;
+        i=matleap_image;
         % only count it if it has a different id
         if f.id~=frame_id
             frame_id=f.id;
             print(f)
             frames=frames+1;
+        end
+        if i.id == frame_id
+            imshow(insertText(imrotate(i.image.data,-90),[1 1],"TEST"));
         end
     end
     s=toc;

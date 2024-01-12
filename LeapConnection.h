@@ -1,13 +1,14 @@
 #ifndef LeapConnection_h
 #define LeapConnection_h
-
 #include "LeapC.h"
 
+typedef int(*print_t)(const char *message, ...);
 /* Client functions */
-LEAP_CONNECTION* OpenConnection();
+LEAP_CONNECTION* OpenConnection(print_t log);
 void CloseConnection();
 void CloseConnectionHandle(LEAP_CONNECTION* connectionHandle);
 LEAP_TRACKING_EVENT* GetFrame(); //Used in polling example
+LEAP_IMAGE_EVENT* GetImage(); //Used in polling example
 LEAP_DEVICE_INFO* GetDeviceProperties(); //Used in polling example
 const char* ResultString(eLeapRS r);
 

@@ -23,15 +23,18 @@ void serviceMessageLoop(void* unused);
 void* serviceMessageLoop(void* unused);
 #endif
 void setFrame(const LEAP_TRACKING_EVENT* frame);
+void setImage(const LEAP_IMAGE_EVENT* imageEvent);
 void setDevice(const LEAP_DEVICE_INFO* deviceProps);
 
 //External state
 bool IsConnected = false;
 
 //Internal state
+print_t logger;
 bool _isRunning = false;
 LEAP_CONNECTION connectionHandle;
 LEAP_TRACKING_EVENT* lastFrame = NULL;
+LEAP_IMAGE_EVENT* lastImage = NULL;
 LEAP_DEVICE_INFO* lastDevice = NULL;
 
 //Callback function pointers
@@ -50,9 +53,11 @@ pthread_mutex_t dataLock;
  * Creates the connection handle and opens a connection to the Leap Motion
  * service. On success, creates a thread to service the LeapC message pump.
  */
-LEAP_CONNECTION* OpenConnection() {
+LEAP_CONNECTION* OpenConnection(print_t log) {
 	eLeapRS result = LeapCreateConnection(NULL, &connectionHandle);
 	if (result == eLeapRS_Success) {
+        logger = log;
+        logger("INIT STARTED");
 		result = LeapOpenConnection(connectionHandle);
 		if (result == eLeapRS_Success) {
 			_isRunning = true;
@@ -154,7 +159,10 @@ void handleDeviceFailureEvent(const LEAP_DEVICE_FAILURE_EVENT* device_failure_ev
 void handleTrackingEvent(const LEAP_TRACKING_EVENT* tracking_event) {
 	setFrame(tracking_event); //support polling tracking data from different thread
 }
-
+/** Called by serviceMessageLoop() when a image event is returned by LeapPollConnection(). */
+void handleImageEvent(const LEAP_IMAGE_EVENT *imageEvent){
+    setImage(imageEvent);
+}
 
 /** Called by serviceMessageLoop() when a policy event is returned by LeapPollConnection(). */
 void handlePolicyEvent(const LEAP_POLICY_EVENT* policy_event) {
@@ -182,7 +190,7 @@ void* serviceMessageLoop(void* unused) {
 			printf("LeapC PollConnection call was %s.\n", ResultString(result));
 			continue;
 		}
-
+        //logger("EVENT:");
 		switch (msg.type) {
 		case eLeapEventType_Connection:
 			handleConnectionEvent(msg.connection_event);
@@ -200,9 +208,15 @@ void* serviceMessageLoop(void* unused) {
 			handleDeviceFailureEvent(msg.device_failure_event);
 			break;
 		case eLeapEventType_Tracking:
+            //logger("Tracking");
 			handleTrackingEvent(msg.tracking_event);
 			break;
+		case eLeapEventType_Image:
+            //logger("Image");
+			handleImageEvent(msg.image_event);
+			break;
 		case eLeapEventType_Policy:
+            //logger("Policy");
 			handlePolicyEvent(msg.policy_event);
 			break;
 		default:
@@ -228,6 +242,17 @@ void setFrame(const LEAP_TRACKING_EVENT * frame) {
 	UnlockMutex(&dataLock);
 }
 
+/**
+ * Caches the newest frame by copying the tracking event struct returned by
+ * LeapC.
+ */
+void setImage(const LEAP_IMAGE_EVENT * imageEvent) {
+	LockMutex(&dataLock);
+	if (!lastImage) lastImage = (LEAP_IMAGE_EVENT*)malloc(sizeof(*imageEvent));
+	*lastImage = *imageEvent;
+	UnlockMutex(&dataLock);
+}
+
 /** Returns a pointer to the cached tracking frame. */
 LEAP_TRACKING_EVENT* GetFrame() {
 	LEAP_TRACKING_EVENT* currentFrame;
@@ -237,6 +262,15 @@ LEAP_TRACKING_EVENT* GetFrame() {
 	UnlockMutex(&dataLock);
 
 	return currentFrame;
+}
+/** Returns a pointer to the cached tracking image. */
+LEAP_IMAGE_EVENT* GetImage() {
+	LEAP_IMAGE_EVENT* currentImage;
+	LockMutex(&dataLock);
+	currentImage = lastImage;
+	UnlockMutex(&dataLock);
+
+	return currentImage;
 }
 
 /**
@@ -296,10 +330,7 @@ const char* ResultString(eLeapRS r) {
 }
 /** Cross-platform sleep function */
 void millisleep(int milliseconds) {
-#ifdef _WIN32
-	Sleep(milliseconds);
-#else
+
 	usleep(milliseconds * 1000);
-#endif
 }
 //End-of-ExampleConnection.c

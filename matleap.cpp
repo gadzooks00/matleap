@@ -5,6 +5,8 @@
 /// @date 2013-09-12
 
 #include "matleap.h"
+#include "matrix.h"
+#include <stdlib.h>
 #include <array>
 
 // Under Windows, a Leap::Controller must be allocated after the MEX
@@ -68,6 +70,7 @@ int get_command(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
 	}
 	break;
 	case 1:
+	case 2:
 	{
 		// frame grab command only requires one input
 		if (nrhs > 1)
@@ -203,7 +206,7 @@ void get_frame(int nlhs, mxArray* plhs[])
 				"normal",
 				"width",
 				"direction",
-				"oritentation"
+				"orientation"
 			};
 			int palm_fields = sizeof(palm_field_names) / sizeof(*palm_field_names);
 			mxArray* palm = mxCreateStructMatrix(1, 1, palm_fields, palm_field_names);
@@ -276,6 +279,63 @@ void get_frame(int nlhs, mxArray* plhs[])
 	mxSetFieldByNumber(plhs[0], 0, 4, mxCreateDoubleScalar(version));
 }
 
+/// @brief helper function
+/// @brief get an image from the leap controller
+///
+/// @param nlhs matlab mex output interface
+/// @param plhs[] matlab mex output interface
+void get_image(int nlhs, mxArray* plhs[])
+{
+	// get the frame
+	const matleap::image& i = fg->get_image();
+	// create matlab frame struct
+	const char* field_names[] =
+	{
+		"id",
+		"timestamp",
+		"image"
+	};
+	int fields = sizeof(field_names) / sizeof(*field_names);
+	plhs[0] = mxCreateStructMatrix(1, 1, fields, field_names);
+	// fill the frame struct
+	mxSetFieldByNumber(plhs[0], 0, 0, mxCreateDoubleScalar(i.id));
+	mxSetFieldByNumber(plhs[0], 0, 1, mxCreateDoubleScalar(i.timestamp));
+
+	const char* image_field_names[] =
+	{
+		"width", // 0
+		"height", // 1
+		"data", // 2
+	};
+
+	int image_fields = sizeof(image_field_names) / sizeof(*image_field_names);
+    int image_width = i.image.properties.width;
+    int image_height = i.image.properties.height;
+    mwSize image_width_MW = i.image.properties.width;
+    mwSize image_height_MW = i.image.properties.height;
+	mxArray* p = mxCreateStructMatrix(1, 1, image_fields, image_field_names);
+	mxSetFieldByNumber(plhs[0], 0, 2, p);
+	// 3 because hands is the third (fourth) field name in
+	// the overall struct we are creating.
+
+	mxSetFieldByNumber(p, 0, 0, mxCreateDoubleScalar(image_width));
+	mxSetFieldByNumber(p, 0, 1, mxCreateDoubleScalar(image_height));
+    mwSize dims[2] = {image_width_MW, image_height_MW};
+	mxArray* pbuffer= mxCreateNumericArray(2, dims, mxUINT8_CLASS, mxREAL);
+    int bufLen = image_width * image_height;
+    mxUint8 *buf;
+    buf = (mxUint8*)mxMalloc(bufLen);
+    mxUint8 *image_data = (mxUint8*) i.image.data;
+    for(int w = 0; w < image_width; w++){
+        for(int h = 0; h < image_height; h++){
+            buf[w*image_height + h] = image_data[w*image_height +h];
+        }
+    }
+    mxSetUint8s(pbuffer,buf);
+	mxSetFieldByNumber(p, 0, 2, pbuffer);
+
+}
+
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
 {
 	if (!fg)
@@ -301,6 +361,9 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
 		// get frame
 	case 1:
 		get_frame(nlhs, plhs);
+		return;
+        case 2:
+		get_image(nlhs, plhs);
 		return;
 	default:
 		// this is a logic error

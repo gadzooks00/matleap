@@ -10,8 +10,8 @@
 #define MAJOR_REVISION 4
 #define MINOR_REVISION 0
 
-#include "LeapC.h"
 #include "mex.h"
+#include "LeapC.h"
 #include "LeapConnection.h"
 
 namespace matleap
@@ -25,7 +25,13 @@ struct frame
 	uint32_t detectedHands;
     LEAP_HAND* hands;
 };
-
+/// @brief a leap image
+struct image
+{
+    int64_t id;
+    int64_t timestamp;
+    LEAP_IMAGE image;
+};
 /// @brief leap frame grabber interface
 class frame_grabber
 {
@@ -33,6 +39,7 @@ class frame_grabber
     bool debug;
 	LEAP_CONNECTION* controllerConnection;
     frame current_frame;
+    image current_image;
     public:
     /// @brief constructor
     frame_grabber ()
@@ -41,10 +48,10 @@ class frame_grabber
     }
 	void open_connection()
 	{
-		controllerConnection = OpenConnection();
+		controllerConnection = OpenConnection(mexPrintf);
 		while (!IsConnected)
 			millisleep(100); //wait a bit to let the connection complete
-		LeapSetPolicyFlags(*controllerConnection, eLeapPolicyFlag_BackgroundFrames, 0);
+		LeapSetPolicyFlags(*controllerConnection, eLeapPolicyFlag_BackgroundFrames | eLeapPolicyFlag_Images, 0);
 	}
 	void close_connection()
 	{
@@ -82,6 +89,21 @@ class frame_grabber
 		current_frame.detectedHands = frame->nHands;
 		current_frame.hands = frame->pHands;
         return current_frame;
+    }
+    /// @brief get a image from the controller
+    ///
+    /// @return the image
+    const image &get_image ()
+    {
+		LEAP_IMAGE_EVENT* image = GetImage();
+        if(image != NULL){
+		    current_image.id = image->info.frame_id;
+            if (debug)
+                mexPrintf ("Got image with id %d\n", current_image.id);
+		    current_image.timestamp = image->info.timestamp;
+		    current_image.image = image->image[0];
+        }
+        return current_image;
     }
 };
 
