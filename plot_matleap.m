@@ -18,19 +18,15 @@ function plot_matleap
     frames=0;
     tic
     figure; 
-    while(toc<10)
+    while(true)
         % get a frame
         f=matleap_frame;
-        % i=matleap_image;
         % only count it if it has a different id
         if f.id~=frame_id
             frame_id=f.id;
             print(f)
             frames=frames+1;
         end
-        % if i.id == frame_id
-        %     imshow(insertText(imrotate(i.image.data,-90),[1 1],"TEST"));
-        % end
     end
     s=toc;
     % display performance
@@ -50,7 +46,6 @@ end
 function print(f)
     fprintf('frame id %d\n',f.id);
     fprintf('frame timestamp %d\n',f.timestamp);
-    fprintf('frame hands %d\n',length(f.hands));
     
     color = ['r', 'b'];
     for i=1:length(f.hands)
@@ -66,14 +61,17 @@ function print(f)
                 plot3(xyz(:,1), xyz(:,2), xyz(:,3), 'o-');                
             end
         end
+        for j=1:length(f.hands(i).arm)
+            xyz(1,:) = f.hands(i).arm(j).prev_joint;
+            xyz(2,:) = f.hands(i).arm(j).next_joint;
+            plot3(xyz(:,1), xyz(:,2), xyz(:,3), 'o-');
+        end
         xyz = f.hands(i).palm.position;
         scatter3(xyz(1), xyz(2), xyz(3), color(i), 'filled', 'square');  
     end
     axis equal;
     axis vis3d;
-    % xlim([-200 200]);
-    % ylim([-200 200]);
-    % zlim([-200 200]);
+    title("OHSU Ultraleap Matlab Output");
     drawnow();
     hold off
 end
