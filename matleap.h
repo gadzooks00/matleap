@@ -7,11 +7,12 @@
 #ifndef MATLEAP_H
 #define MATLEAP_H
 
-#define MAJOR_REVISION 0
-#define MINOR_REVISION 7
+#define MAJOR_REVISION 4
+#define MINOR_REVISION 0
 
-#include "Leap.h"
 #include "mex.h"
+#include "LeapC.h"
+#include "LeapConnection.h"
 
 namespace matleap
 {
@@ -21,25 +22,43 @@ struct frame
 {
     int64_t id;
     int64_t timestamp;
-    Leap::PointableList pointables;
-    Leap::HandList hands;
+	uint32_t detectedHands;
+    LEAP_HAND* hands;
 };
-
+/// @brief a leap image
+struct image
+{
+    int64_t id;
+    int64_t timestamp;
+    LEAP_IMAGE image;
+};
 /// @brief leap frame grabber interface
 class frame_grabber
 {
     private:
     bool debug;
-    Leap::Controller controller;
+	LEAP_CONNECTION* controllerConnection;
     frame current_frame;
+    image current_image;
     public:
     /// @brief constructor
     frame_grabber ()
         : debug (false)
     {
-        // receive frames even when you don't have focus
-        controller.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
     }
+	void open_connection()
+	{
+		controllerConnection = OpenConnection(mexPrintf);
+		while (!IsConnected)
+			millisleep(100); //wait a bit to let the connection complete
+		LeapSetPolicyFlags(*controllerConnection, eLeapPolicyFlag_BackgroundFrames | eLeapPolicyFlag_Images, 0);
+	}
+	void close_connection()
+	{
+		CloseConnectionHandle(controllerConnection);
+		while (IsConnected)
+			millisleep(100); //wait a bit to let the connection complete
+	}
     /// @brief destructor
     ~frame_grabber ()
     {
@@ -62,14 +81,29 @@ class frame_grabber
     /// @return the frame
     const frame &get_frame ()
     {
-        const Leap::Frame &f = controller.frame ();
-        current_frame.id = f.id ();
+		LEAP_TRACKING_EVENT* frame = GetFrame();
+		current_frame.id = frame->tracking_frame_id;
         if (debug)
             mexPrintf ("Got frame with id %d\n", current_frame.id);
-        current_frame.timestamp = f.timestamp ();
-        current_frame.pointables = f.pointables ();
-        current_frame.hands = f.hands ();
+		current_frame.timestamp = frame->info.timestamp;
+		current_frame.detectedHands = frame->nHands;
+		current_frame.hands = frame->pHands;
         return current_frame;
+    }
+    /// @brief get a image from the controller
+    ///
+    /// @return the image
+    const image &get_image ()
+    {
+		LEAP_IMAGE_EVENT* image = GetImage();
+        if(image != NULL){
+		    current_image.id = image->info.frame_id;
+            if (debug)
+                mexPrintf ("Got image with id %d\n", current_image.id);
+		    current_image.timestamp = image->info.timestamp;
+		    current_image.image = image->image[0];
+        }
+        return current_image;
     }
 };
 

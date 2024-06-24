@@ -6,7 +6,6 @@
 
 function test_matleap
     % remove matleap mex-file from memory
-    clear functions
     % set debug on
     %matleap_debug
     % show version
@@ -21,11 +20,15 @@ function test_matleap
     while(toc<10)
         % get a frame
         f=matleap_frame;
+        i=matleap_image;
         % only count it if it has a different id
         if f.id~=frame_id
             frame_id=f.id;
             print(f)
             frames=frames+1;
+        end
+        if i.id == frame_id
+            imshow(insertText(imrotate(i.image.data,-90),[1 1],"TEST"));
         end
     end
     s=toc;
@@ -46,40 +49,13 @@ end
 function print(f)
     fprintf('frame id %d\n',f.id);
     fprintf('frame timestamp %d\n',f.timestamp);
-    fprintf('frame pointables %d\n',length(f.pointables));
     fprintf('frame hands %d\n',length(f.hands));
-    for i=1:length(f.pointables)
-        fprintf('pointable %d\n',i);
-        fprintf('\tid ');
-        fprintf('%d',f.pointables(i).id);
-        fprintf('\n');
-        fprintf('\tposition ');
-        fprintf(' %f',f.pointables(i).position);
-        fprintf('\n');
-        fprintf('\tvelocity ');
-        fprintf(' %f',f.pointables(i).velocity);
-        fprintf('\n');
-        fprintf('\tdirection ');
-        fprintf(' %f',f.pointables(i).direction);
-        fprintf('\n');
-    end
+    
     
     for i=1:length(f.hands)
         fprintf('hand %d\n',i);
         fprintf('\tpalm position ');
-        fprintf(' %f',f.hands(i).palm_position); 
-        fprintf('\n');
-        
-        fprintf('\tsphere radius ');
-        fprintf(' %f',f.hands(i).sphere_radius); 
-        fprintf('\n');
-        
-        fprintf('\tis right ');
-        fprintf(' %f',f.hands(i).is_right); 
-        fprintf('\n');
-        
-        fprintf('\tis left ');
-        fprintf(' %f',f.hands(i).is_left); 
+        fprintf(' %f',f.hands(i).palm.position); 
         fprintf('\n');
     end
 end
