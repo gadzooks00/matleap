@@ -1,0 +1,31 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: 'Matleap: MATLAB Interface to the Leap Motion Controller'
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Tom
+    family-names: Hetto
+    orcid: 'https://orcid.org/0000-0001-8097-2296'
+  - given-names: Jeff
+    family-names: Perry
+    affiliation: 'https://github.com/jeffsp'
+identifiers:
+  - type: url
+    value: 'https://github.com/tomh4/matleap'
+    description: GitHub Repository
+repository-code: 'https://github.com/tomh4/matleap'
+repository: 'https://github.com/jeffsp/matleap'
+abstract: >
+  Matleap: MATLAB Interface to the Leap Motion Controller
+
+  This MATLAB mex-file will allow you to get data from a
+  Leap Motion Controller device.
+keywords:
+  - Matlab
+  - Leap Motion
+  - Ultraleap

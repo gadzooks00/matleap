@@ -1,2 +1,11 @@
 LeapSDK
 matleap.mexa64
+.vs/
+LeapSDKv4/
+MatLeapC.sln
+MatLeapC.vcxproj
+MatLeapC.vcxproj.filters
+MatLeapC.vcxproj.user
+x64/
+*.mexw64
+LeapC.dll
