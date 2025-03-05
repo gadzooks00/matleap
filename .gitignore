@@ -9,3 +9,4 @@ MatLeapC.vcxproj.user
 x64/
 *.mexw64
 LeapC.dll
+data/
